@@ -17,21 +17,40 @@ import java.net.URL;
 enum DownloadStatus { IDLE, PROCESSING, NOT_INITIALIZED, FAILED_OR_EMPTY, OK }
 
 class GetRawData extends AsyncTask<String, Void, String> {
-    private static final String TAG = "GetRawData";
 
-    //when you start a variable with an 'm' it means it's a member variable
+    private static final String TAG = "GetRawData";
     private DownloadStatus mDownloadStatus;
+    private final OnDownloadComplete mCallback;
+
+    interface OnDownloadComplete {
+        void onDownloadComplete(String data, DownloadStatus status);
+    }
 
     //create constructer
-    public GetRawData() {
+    public GetRawData(OnDownloadComplete callback) {
         //initialize mDownloadStatus
-        mDownloadStatus = DownloadStatus.IDLE;
+        this.mDownloadStatus = DownloadStatus.IDLE;
+        mCallback = callback;
     }
+
+    //this
+
+    void runInSameThread(String s) {
+        Log.d(TAG, "runInSameThread: starts");
+
+        onPostExecute(doInBackground(s));
+
+        Log.d(TAG, "runInSameThread: ends");
+    }
+
     //override required async methods
     @Override
     protected void onPostExecute(String s) {
         Log.d(TAG, "onPostExecute:  parameter = " + s);
-//        super.onPostExecute(s);  //This line is not needed because it doesn't do anything
+        if(mCallback != null) {
+            mCallback.onDownloadComplete(s, mDownloadStatus);
+        }
+        Log.d(TAG, "onPostExecute: ends");
     }
 
     @Override
@@ -44,9 +63,9 @@ class GetRawData extends AsyncTask<String, Void, String> {
             mDownloadStatus = DownloadStatus.NOT_INITIALIZED;
             return null;
         }
-        //next we will make sure to catch possible errors that would otherwise stop the application
+        //try and update DownloadStatus + Catch possible errors
         try {
-            //in this try block we will be changing our download status variable to processing
+            //
             mDownloadStatus = DownloadStatus.PROCESSING;
             //attempt to create the URL from the String parameter we passed in
             //there should only be one parameter passed in, this is why we use 0 to indicate
@@ -110,4 +129,6 @@ class GetRawData extends AsyncTask<String, Void, String> {
         mDownloadStatus = DownloadStatus.FAILED_OR_EMPTY;
         return null;
     }
+
+
 }
